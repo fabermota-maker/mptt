@@ -33,6 +33,7 @@
         "_x30_7_x5F_txt_x5F_info",
         "_07_txt_info",
         "_08_pois",
+        "_x30_8_x5F_pois",
       ],
       technical: [
         "_05_edge_indoor_tech",
@@ -2066,11 +2067,16 @@
   function parseGraph(svg) {
     G.nodes = {}; G.adj = {}; G.pois = []; G.walls = []; G.autoN = 0; G.main = null;
     const L = CONFIG.layers;
+    const T = CONFIG.replaceTargets;
+    // após o replace, as camadas usam os IDs do host (replaceTargets)
+    const nodeLayerIds = [...new Set([...(L.nodes || []), T.nodes].filter(Boolean))];
+    const edgeLayerIds = [...new Set([...(L.edges || []), T.edgeIndoor, T.edgeOutdoor].filter(Boolean))];
+    const poiLayerIds = [...new Set([...(L.pois || []), T.pois].filter(Boolean))];
 
     parseWalls(svg);
 
     // NODES oficiais do Illustrator (= entradas / pontos de passagem)
-    L.nodes.forEach((layerId) => {
+    nodeLayerIds.forEach((layerId) => {
       const g = layerById(svg, layerId);
       if (!g) return;
       g.querySelectorAll("circle, ellipse, rect").forEach((c, i) => {
@@ -2083,10 +2089,11 @@
     });
 
     // EDGES indoor + outdoor — line/polyline da camada técnica (filhos ou nested)
-    L.edges.forEach((layerId, layerIdx) => {
+    edgeLayerIds.forEach((layerId) => {
       const g = layerById(svg, layerId);
       if (!g) return;
-      const zone = (L.edgeZones && L.edgeZones[layerIdx]) || (layerIdx === 0 ? "indoor" : "outdoor");
+      const isOutdoor = /outdoor/i.test(layerId);
+      const zone = isOutdoor ? "outdoor" : "indoor";
       const shapes = [...g.querySelectorAll("line, polyline")];
       shapes.forEach((c) => {
         const pts = edgeEndpoints(c);
@@ -2110,7 +2117,7 @@
     computeMainComponent();
 
     // POIS — ancora na ENTRADA (mapa explícito + node oficial sem atravessar parede)
-    L.pois.forEach((layerId) => {
+    poiLayerIds.forEach((layerId) => {
       const g = layerById(svg, layerId);
       if (!g) return;
       const els = [...g.querySelectorAll("[id]")].filter((el, i, arr) => {

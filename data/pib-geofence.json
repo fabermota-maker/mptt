@@ -148,5 +148,17 @@
       "navNodeId": "L00_N0001_entrada_pedestre_principal_bento"
     }
   ],
-  "notes": "Perímetro GPS de campo. svgX/svgY são âncoras no mapa L00 para calibragem multi-ponto. A geofence em si usa apenas lat/lng."
+  "gpsReferencePoints": [
+    {
+      "id": "GPS_REF_001",
+      "nome": "Ponto de sincronização GPS",
+      "latitude": -25.44216291355138,
+      "longitude": -49.28512513703895,
+      "floorId": "L00",
+      "navNodeId": "L00_N0001_entrada_pedestre_principal_bento",
+      "type": "GPS_ANCHOR",
+      "maximumActivationDistanceMeters": 15
+    }
+  ],
+  "notes": "Perímetro GPS de campo. svgX/svgY são âncoras no mapa L00 para calibragem multi-ponto. A geofence em si usa apenas lat/lng. gpsReferencePoints são âncoras de sincronização (não fazem parte do polígono A–O)."
 }
