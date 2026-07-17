@@ -1,5 +1,6 @@
 /**
  * Marcador visual de posição do usuário (ponto azul + cone + precisão).
+ * Estilo Google Maps: círculo azul, borda branca, cone de heading.
  */
 (function (global) {
   "use strict";
@@ -17,8 +18,8 @@
   }
 
   function createUserLocationPuck(overlayEl, opts = {}) {
-    const openingDeg = opts.coneOpeningDeg ?? 50;
-    const coneRadius = opts.coneRadius ?? 42;
+    const openingDeg = opts.coneOpeningDeg ?? 56;
+    const coneRadius = opts.coneRadius ?? 48;
 
     const root = document.createElementNS("http://www.w3.org/2000/svg", "g");
     root.setAttribute("id", "userLocationPuck");
@@ -38,10 +39,11 @@
     const cone = document.createElementNS("http://www.w3.org/2000/svg", "path");
     cone.setAttribute("class", "ulp-cone");
     cone.setAttribute("d", buildConePath(openingDeg, coneRadius));
+    cone.setAttribute("hidden", "");
 
     const ring = document.createElementNS("http://www.w3.org/2000/svg", "circle");
     ring.setAttribute("class", "ulp-ring");
-    ring.setAttribute("r", "9");
+    ring.setAttribute("r", "10");
 
     const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
     dot.setAttribute("class", "ulp-dot");
@@ -82,7 +84,7 @@
       accuracy.setAttribute("cy", String(svgY));
       body.setAttribute("transform", `translate(${svgX} ${svgY}) rotate(${displayHeading})`);
       if (isFinite(accuracyMeters) && accuracyMeters > 0 && typeof metersToSvgUnits === "function") {
-        const r = Math.max(4, metersToSvgUnits(accuracyMeters));
+        const r = Math.max(6, metersToSvgUnits(accuracyMeters));
         accuracy.setAttribute("r", String(r));
         accuracy.removeAttribute("hidden");
       } else {
@@ -100,12 +102,8 @@
       coneVisible = true;
       cone.removeAttribute("hidden");
       const cam = cameraBearing || 0;
-      displayHeading = GT()?.normalizeAngle(mapHeading - cam) ?? mapHeading - cam;
+      displayHeading = GT()?.normalizeAngle(mapHeading - cam) ?? ((mapHeading - cam) % 360 + 360) % 360;
       body.setAttribute("transform", `translate(${x} ${y}) rotate(${displayHeading})`);
-    }
-
-    function getPosition() {
-      return { x, y };
     }
 
     return {
@@ -114,7 +112,7 @@
       hide,
       setPosition,
       setHeading,
-      getPosition,
+      getPosition: () => ({ x, y }),
       isVisible: () => visible,
       hasCone: () => coneVisible,
     };

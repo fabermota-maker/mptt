@@ -36,6 +36,8 @@
       viewport,
       canvas,
       locBtn,
+      gpsCompass,
+      gpsCompassArrow,
       getState,
       setState,
       apply,
@@ -93,17 +95,44 @@
 
     function updateLocBtn() {
       if (!locBtn) return;
-      const mode = getState().userNav?.followMode || "free";
+      const nav = getState().userNav || {};
+      const mode = nav.followMode || "free";
       locBtn.dataset.mode = mode;
+      locBtn.dataset.gps = (started || nav.gpsAvailable) ? "on" : "off";
       locBtn.classList.toggle("is-follow", mode === "follow");
       locBtn.classList.toggle("is-follow-heading", mode === "follow-heading");
       const labels = {
-        free: "Centralizar na minha localização",
+        free: "Ativar minha localização",
         follow: "Seguindo localização (toque p/ seguir direção)",
         "follow-heading": "Seguindo localização e direção (toque p/ liberar)",
       };
       locBtn.title = labels[mode] || labels.free;
-      locBtn.setAttribute("aria-pressed", mode !== "free" ? "true" : "false");
+      locBtn.setAttribute("aria-pressed", mode !== "free" || started ? "true" : "false");
+      updateGpsCompass();
+    }
+
+    function showGpsCompass(on) {
+      if (!gpsCompass) return;
+      if (on) {
+        gpsCompass.hidden = false;
+        gpsCompass.removeAttribute("hidden");
+        gpsCompass.setAttribute("aria-hidden", "false");
+      } else {
+        gpsCompass.hidden = true;
+        gpsCompass.setAttribute("hidden", "");
+        gpsCompass.setAttribute("aria-hidden", "true");
+      }
+    }
+
+    function updateGpsCompass() {
+      const nav = getState().userNav || {};
+      const active = started && (nav.gpsAvailable || nav.headingAvailable);
+      showGpsCompass(active);
+      if (!active || !gpsCompassArrow) return;
+      // seta aponta para a direção do aparelho (0 = Norte no anel)
+      const h = nav.deviceHeading;
+      if (h == null || !isFinite(h)) return;
+      gpsCompassArrow.style.transform = `rotate(${h}deg)`;
     }
 
     function animateFrame() {
@@ -128,6 +157,7 @@
         }
         puck.setHeading(mapHeading, nav.cameraBearing || 0);
       }
+      updateGpsCompass();
 
       animId = requestAnimationFrame(animateFrame);
     }
@@ -276,6 +306,7 @@
         document.addEventListener("visibilitychange", onVisibility);
         started = true;
         updateLocBtn();
+        showGpsCompass(true);
         if (!silent) toast("Buscando sua localização…");
         return true;
       } finally {
@@ -346,7 +377,9 @@
       animId = null;
       document.removeEventListener("visibilitychange", onVisibility);
       puck?.hide();
+      showGpsCompass(false);
       started = false;
+      updateLocBtn();
     }
 
     function getNavigationState() {

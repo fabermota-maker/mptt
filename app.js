@@ -213,6 +213,7 @@
     routeLine: $("routeLine"), routeFlow: $("routeFlow"),
     routeStart: $("routeStart"), routeEnd: $("routeEnd"), hereMarker: $("hereMarker"),
     zoomIn: $("zoomIn"), zoomOut: $("zoomOut"), fitBtn: $("fitBtn"), locBtn: $("locBtn"),
+    gpsCompass: $("gpsCompass"), gpsCompassArrow: $("gpsCompassArrow"),
     navOverlay: $("navOverlay"), compassArrow: $("compassArrow"),
     navStepText: $("navStepText"), navDistText: $("navDistText"),
     navPrev: $("navPrev"), navNext: $("navNext"), navExit: $("navExit"), navHint: $("navHint"),
@@ -1390,6 +1391,8 @@
       viewport: el.viewport,
       canvas: el.canvas,
       locBtn: el.locBtn,
+      gpsCompass: el.gpsCompass,
+      gpsCompassArrow: el.gpsCompassArrow,
       getState: () => state,
       setState: (patch) => { Object.assign(state, patch); },
       apply,
@@ -2335,24 +2338,37 @@
     mkPath("mapRouteCasing", { stroke: "#ffffff", "stroke-width": "9", "stroke-linecap": "round", "stroke-linejoin": "round" });
     mkPath("mapRouteLine", { stroke: "#2563eb", "stroke-width": "5", "stroke-linecap": "round", "stroke-linejoin": "round" });
     mkPath("mapRouteFlow", { stroke: "#ffffff", "stroke-opacity": "0.95", "stroke-width": "2.2", "stroke-linecap": "round", "stroke-linejoin": "round", "stroke-dasharray": "2 16", class: "route-flow" });
-    const pin = (id, fill) => {
+    const pin = (id, kind) => {
       const g = document.createElementNS(NS, "g");
       g.setAttribute("id", id);
+      g.setAttribute("class", `route-pin route-pin--${kind}`);
       g.setAttribute("visibility", "hidden");
-      const body = document.createElementNS(NS, "path");
-      body.setAttribute("d", "M0 0 C -9 -13 -7 -24 0 -24 C 7 -24 9 -13 0 0 Z");
-      body.setAttribute("fill", fill);
-      body.setAttribute("stroke", "#fff");
-      body.setAttribute("stroke-width", "2.5");
+      if (kind === "start") {
+        const halo = document.createElementNS(NS, "circle");
+        halo.setAttribute("class", "pin-halo");
+        halo.setAttribute("r", "12");
+        halo.setAttribute("fill", "rgba(15, 118, 110, 0.32)");
+        g.appendChild(halo);
+      } else {
+        const ring = document.createElementNS(NS, "circle");
+        ring.setAttribute("class", "pin-ring");
+        ring.setAttribute("r", "7.5");
+        ring.setAttribute("fill", "none");
+        ring.setAttribute("stroke", "#2563eb");
+        ring.setAttribute("stroke-width", "2.8");
+        ring.setAttribute("vector-effect", "non-scaling-stroke");
+        g.appendChild(ring);
+      }
       const dot = document.createElementNS(NS, "circle");
-      dot.setAttribute("cx", "0"); dot.setAttribute("cy", "-15"); dot.setAttribute("r", "4");
-      dot.setAttribute("fill", "#fff");
-      g.appendChild(body); g.appendChild(dot);
+      dot.setAttribute("class", "pin-dot");
+      dot.setAttribute("r", "4");
+      dot.setAttribute("fill", "#ffffff");
+      g.appendChild(dot);
       layer.appendChild(g);
       return g;
     };
-    pin("mapRouteStart", "#16a34a");
-    pin("mapRouteEnd", "#ef4444");
+    pin("mapRouteStart", "start");
+    pin("mapRouteEnd", "end");
     svg.appendChild(layer);
     return layer;
   }
