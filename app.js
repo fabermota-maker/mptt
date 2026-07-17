@@ -212,7 +212,7 @@
     routeGlow: $("routeGlow"), routeCasing: $("routeCasing"),
     routeLine: $("routeLine"), routeFlow: $("routeFlow"),
     routeStart: $("routeStart"), routeEnd: $("routeEnd"), hereMarker: $("hereMarker"),
-    zoomIn: $("zoomIn"), zoomOut: $("zoomOut"), fitBtn: $("fitBtn"),
+    zoomIn: $("zoomIn"), zoomOut: $("zoomOut"), fitBtn: $("fitBtn"), locBtn: $("locBtn"),
     navOverlay: $("navOverlay"), compassArrow: $("compassArrow"),
     navStepText: $("navStepText"), navDistText: $("navDistText"),
     navPrev: $("navPrev"), navNext: $("navNext"), navExit: $("navExit"), navHint: $("navHint"),
@@ -239,6 +239,8 @@
     searchLevel: "all", // padrão: todos os níveis
     floorViews: {}, // { L00: SVGElement, L01: SVGElement, ... }
     floorMeta: {},  // { L00: { vbW, vbH }, ... }
+    userNav: null,
+    userLocation: null,
   };
 
   const CAT_LABEL = {
@@ -1363,10 +1365,29 @@
         drawCalibrationMarks(state.calibration.startPoint, state.calibration.endPoint);
       }
       fit();
+      initUserLocation();
     } catch (err) {
       el.statusHint.textContent = `Não foi possível montar o mapa: ${err.message}`;
       console.error(err);
     }
+  }
+
+  function initUserLocation() {
+    if (typeof UserLocationSystem === "undefined" || state.userLocation) return;
+    state.userLocation = UserLocationSystem.create({
+      overlay: el.overlay,
+      viewport: el.viewport,
+      canvas: el.canvas,
+      locBtn: el.locBtn,
+      getState: () => state,
+      setState: (patch) => { Object.assign(state, patch); },
+      apply,
+      clamp,
+      getViewBox: () => ({ w: G.vbW, h: G.vbH }),
+      getMetersPerUnit,
+      toast,
+    });
+    state.userLocation.start();
   }
 
   // centro geometrico de um elemento SVG (usa bbox quando disponivel)
@@ -3770,7 +3791,17 @@
     el.overlay.setAttribute("height", h);
     el.canvas.style.width = `${w}px`;
     el.canvas.style.height = `${h}px`;
-    el.canvas.style.transform = `translate(${state.panX}px, ${state.panY}px)`;
+    const followHeading = state.userNav?.isFollowingHeading && isFinite(state.userNav.cameraBearing);
+    if (followHeading) {
+      const ox = w / 2;
+      const oy = h / 2;
+      el.canvas.style.transformOrigin = `${ox}px ${oy}px`;
+      el.canvas.style.transform =
+        `translate(${state.panX}px, ${state.panY}px) rotate(${state.userNav.cameraBearing}deg)`;
+    } else {
+      el.canvas.style.transformOrigin = "";
+      el.canvas.style.transform = `translate(${state.panX}px, ${state.panY}px)`;
+    }
   }
   function clamp() {
     const r = el.viewport.getBoundingClientRect();
@@ -4341,7 +4372,10 @@
     el.viewport.addEventListener("pointermove", (e) => {
       if (!state.drag) return;
       const dx = e.clientX - state.sx, dy = e.clientY - state.sy;
-      if (Math.abs(dx) + Math.abs(dy) > 3) state.moved = true;
+      if (Math.abs(dx) + Math.abs(dy) > 3) {
+        state.moved = true;
+        if (state.userLocation) state.userLocation.onMapDragged();
+      }
       state.panX = state.px + dx; state.panY = state.py + dy; clamp(); apply();
     });
     const endDrag = (e) => {
