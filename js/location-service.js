@@ -76,8 +76,8 @@
       active = true;
       watchId = navigator.geolocation.watchPosition(onPosition, onError, {
         enableHighAccuracy: true,
-        maximumAge: 1000,
-        timeout: 15000,
+        maximumAge: opts.maximumAge ?? 3000,
+        timeout: opts.timeout ?? 15000,
       });
       return true;
     }

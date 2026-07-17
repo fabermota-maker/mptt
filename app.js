@@ -27,8 +27,11 @@
       visible: [
         "_x30_2_x5F_background_x5F_estacionamento_x5F_BG",
         "_x30_3_x5F_background_x5F_estacionamento_x5F_Map",
+        "_02_background_estacionamento_BG",
+        "_03_background_estacionamento_Map",
         "_x30_4_x5F__x5F_background_x5F_wall_x5F_paredes_x5F_tech",
         "_x30_7_x5F_txt_x5F_info",
+        "_07_txt_info",
         "_08_pois",
       ],
       technical: [
@@ -37,6 +40,7 @@
         "_x30_5_x5F_edge_x5F_indoor_x5F_tech",
         "_x30_6_x5F_edge_x5F_outdoor-tech",
         "_09_nodes_L00",
+        "_x30_9_x5F_nodes_x5F_L00",
       ],
     },
     // no background antigo, as camadas ainda têm estes IDs (antes da substituição)
@@ -1240,6 +1244,32 @@
     [...defsNode.children].forEach((c) => hostDefs.appendChild(document.importNode(c, true)));
   }
 
+  /** Oculta nodes e edges (malha técnica) — o usuário não deve ver. */
+  function hideTechnicalLayers(svg, { hard = true } = {}) {
+    if (!svg) return;
+    const ids = new Set([
+      ...(CONFIG.layers.technical || []),
+      CONFIG.replaceTargets.nodes,
+      CONFIG.replaceTargets.edgeIndoor,
+      CONFIG.replaceTargets.edgeOutdoor,
+      ...(CONFIG.layers.nodes || []),
+      ...(CONFIG.layers.edges || []),
+    ]);
+    ids.forEach((id) => {
+      if (!id) return;
+      const g = layerById(svg, id);
+      if (!g) return;
+      // soft: só visibility (permite getBBox no parse); hard: some de verdade
+      if (hard) g.style.display = "none";
+      else g.style.display = "";
+      g.style.visibility = "hidden";
+      g.style.pointerEvents = "none";
+      g.setAttribute("aria-hidden", "true");
+      if (hard) g.classList.add("layer-tech-hidden");
+      else g.classList.remove("layer-tech-hidden");
+    });
+  }
+
   /* ============================================================ CARREGAR SVG */
   async function loadSVG() {
     try {
@@ -1281,7 +1311,7 @@
         },
         { key: "nodes", targetId: T.nodes, sourceIds: CONFIG.layers.nodes.concat([T.nodes]), classPrefix: "node" },
         { key: "pois", targetId: T.pois, sourceIds: CONFIG.layers.pois.concat([T.pois]), classPrefix: "poi" },
-        { key: "infoTextos", targetId: T.infoTextos, sourceIds: [T.infoTextos], classPrefix: "info" },
+        { key: "infoTextos", targetId: T.infoTextos, sourceIds: ["_07_txt_info", T.infoTextos], classPrefix: "info" },
       ];
       for (const { key, targetId, sourceIds, classPrefix } of replacements) {
         const current = layerById(svg, targetId);
@@ -1289,6 +1319,8 @@
         if (!current || !replacement) {
           throw new Error(`Camada não encontrada: ${key} (${targetId})`);
         }
+        // mantém o id esperado pelo host (compatível com layers.visible)
+        replacement.setAttribute("id", targetId);
         if (replacement._sourceDefs) {
           mergeDefs(svg, replacement._sourceDefs);
           delete replacement._sourceDefs;
@@ -1326,13 +1358,8 @@
         }
       });
       setDisplay(L.visible, "inline");
-      setDisplay(L.technical, "inline");
-      L.technical.forEach((id) => {
-        const g = layerById(svg, id);
-        if (!g) return;
-        g.style.visibility = "hidden";
-        g.style.pointerEvents = "none";
-      });
+      // soft hide antes do parse (getBBox ainda funciona)
+      hideTechnicalLayers(svg, { hard: false });
 
       el.svgHost.innerHTML = "";
       el.svgHost.appendChild(svg);
@@ -1353,7 +1380,8 @@
       renderFloorMenu();
       updateFloorChrome();
 
-      setDisplay(L.technical, "none");
+      // nodes/edges ocultos de verdade para o usuário
+      hideTechnicalLayers(svg, { hard: true });
 
       el.svgName.textContent = Object.values(CONFIG.svgFiles)
         .map((url) => url.split("/").pop())
@@ -2459,9 +2487,10 @@
       "espaco acolher", "abasc", "estacionamento moto", "estacionamento motos",
       "entrada principal toldo", "entrada estacionamento", "entrada pedestre",
       "jardim", "templo", "capela", "bercario", "recepcao", "narnia",
-      "centro de formacao", "centro de formacao cf",
+      "centro de formacao", "centro de formacao cf", "centro de formacao | cf",
       "restaurante seven pass", "seven pass", "bazar transforma abasc",
-      "bazar transforma", "bazar abasc",
+      "bazar transforma", "bazar abasc", "abasc - acao social", "acao social",
+      "entrada sevenpass", "entrada seven pass",
     ];
     for (const a of aliases) poiKeys.push(a);
 
@@ -2487,7 +2516,7 @@
         const hits = kk.filter((k) => tt.some((w) => w === k || (k.length >= 5 && w.includes(k)) || (w.length >= 5 && k.includes(w))));
         const need = Math.min(2, kk.length);
         if (hits.length >= need) return true;
-        if (hits.length === 1 && ["jardim", "templo", "capela", "abasc", "kids", "narnia", "toldo", "bercario", "recepcao", "ginasio", "formacao"].includes(hits[0])) {
+        if (hits.length === 1 && ["jardim", "templo", "capela", "abasc", "kids", "narnia", "toldo", "bercario", "recepcao", "ginasio", "formacao", "sevenpass", "seven", "bazar", "cf"].includes(hits[0])) {
           return true;
         }
       }
@@ -2503,15 +2532,43 @@
     [...layer.children].forEach((child) => {
       const tag = (child.tagName || "").toLowerCase();
       // tipografia em path marcada como rótulo de POI (ex.: Centro de Formação CF)
-      if (child.getAttribute("data-keep-label") === "true") return;
+      if (child.getAttribute("data-keep-label") === "true") {
+        child.removeAttribute("visibility");
+        child.removeAttribute("aria-hidden");
+        child.style.visibility = "";
+        child.style.display = "";
+        return;
+      }
       if (tag === "text") {
         const content = (child.textContent || "").replace(/\s+/g, " ").trim();
         if (!isPoiLabel(content)) hide(child);
         return;
       }
+      // tipografia convertida em path perto de POIs prioritários
+      if (tag === "g" && shouldKeepPathLabel(child)) {
+        child.setAttribute("data-keep-label", "true");
+        return;
+      }
       // setas e tipografia em path — só poluem; POIs já têm ícone + texto mantido
       hide(child);
     });
+  }
+
+  /** Mantém grupos de tipografia (path) próximos a POIs que devem ficar legíveis. */
+  function shouldKeepPathLabel(g) {
+    const first = g.querySelector("path");
+    if (!first) return false;
+    const d = first.getAttribute("d") || "";
+    const m = d.match(/^M\s*(-?[\d.]+)[,\s]+(-?[\d.]+)/i);
+    if (!m) return false;
+    const x = +m[1], y = +m[2];
+    // âncoras aproximadas dos rótulos: Centro de Formação | CF, SEVEN PASS, Bazar abasc
+    const anchors = [
+      { x: 99, y: 108, r: 40 },   // Centro de Formação | CF
+      { x: 742, y: 457, r: 40 },  // SEVEN PASS
+      { x: 808, y: 457, r: 40 },  // Bazar abasc
+    ];
+    return anchors.some((a) => Math.hypot(x - a.x, y - a.y) <= a.r);
   }
 
   function bindPOIs(svg) {

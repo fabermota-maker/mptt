@@ -486,9 +486,21 @@ body.is-dev .calib-box:not([hidden]) { display: flex; }
 .svg-host [data-icon-hidden][data-hover="true"],
 .svg-host [data-icon-hidden][data-selected="true"] { filter: none; transform: none; }
 .svg-host .layer-faint { opacity: .35; pointer-events: none; }
+.svg-host .layer-tech-hidden,
+.svg-host #_09_nodes_L00,
+.svg-host #_x30_9_x5F_nodes_x5F_L00,
+.svg-host #_05_edge_indoor_tech,
+.svg-host #_06_edge_outdoor-tech,
+.svg-host #_x30_5_x5F_edge_x5F_indoor_x5F_tech,
+.svg-host #_x30_6_x5F_edge_x5F_outdoor-tech {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
 .svg-host [data-hidden-node="true"],
 .svg-host circle[visibility="hidden"] {
   display: none !important;
+  visibility: hidden !important;
 }
 
 .overlay {
