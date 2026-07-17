@@ -290,6 +290,16 @@ body {
   outline: none; border-color: color-mix(in srgb, var(--brand) 70%, white);
   box-shadow: var(--ring);
 }
+/* Lista nativa do SO usa fundo claro; no dark mode o texto herdava branco → ilegível */
+:root[data-theme="dark"] .browse__level-select option {
+  color: #0f172a;
+  background-color: #ffffff;
+}
+:root[data-theme="dark"] .browse__level-select option:checked,
+:root[data-theme="dark"] .browse__level-select option:hover {
+  color: #0f172a;
+  background-color: #dbeafe;
+}
 
 .suggest {
   list-style: none; margin: 8px 0 0; padding: 8px; position: absolute; z-index: 30;

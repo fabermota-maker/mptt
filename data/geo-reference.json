@@ -1,0 +1,23 @@
+{
+  "id": "pib-curitiba-campus",
+  "level": "L00",
+  "controlPoints": [
+    {
+      "id": "entrada_av_batel",
+      "label": "Entrada estacionamento Av. Batel",
+      "latitude": -25.44078,
+      "longitude": -49.28372,
+      "svgX": 21.5,
+      "svgY": 347
+    },
+    {
+      "id": "entrada_pedestre_bento",
+      "label": "Entrada pedestre Bento Viana 1200",
+      "latitude": -25.44203,
+      "longitude": -49.28503,
+      "svgX": 514.38,
+      "svgY": 846.6
+    }
+  ],
+  "notes": "Pontos de controle estimados a partir de entradas conhecidas do campus. Refinar com GPS de campo quando possível."
+}

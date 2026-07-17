@@ -1373,7 +1373,18 @@
   }
 
   function initUserLocation() {
-    if (typeof UserLocationSystem === "undefined" || state.userLocation) return;
+    if (state.userLocation) return;
+    if (typeof UserLocationSystem === "undefined") {
+      console.warn("UserLocationSystem não carregou (scripts js/ ausentes no deploy?).");
+      if (el.locBtn && !el.locBtn._bound) {
+        el.locBtn._bound = true;
+        el.locBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          toast("Localização GPS não disponível neste deploy. Verifique se os arquivos js/ foram publicados.");
+        });
+      }
+      return;
+    }
     state.userLocation = UserLocationSystem.create({
       overlay: el.overlay,
       viewport: el.viewport,
@@ -1387,7 +1398,7 @@
       getMetersPerUnit,
       toast,
     });
-    state.userLocation.start();
+    // Não auto-inicia: permissão de GPS/bússola precisa de gesto do usuário (clique no botão).
   }
 
   // centro geometrico de um elemento SVG (usa bbox quando disponivel)
